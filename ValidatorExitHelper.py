@@ -17,6 +17,9 @@ import time
 import yaml
 import subprocess
 
+# กำหนด path ของ Lighthouse
+LIGHTHOUSE_PATH = "/path/to/lighthouse"  # แทนที่ด้วยพาธที่ถูกต้องของ Lighthouse
+
 # กำหนดชื่อไฟล์ YAML และตำแหน่ง testnet_dir
 FILE_PATH = "/home/USER/.lighthouse/custom/validators/validator_definitions.yml"
 TESTNET_DIR = "/home/USER/node/config/"  # แทนที่ด้วยพาธที่ต้องการ https://github.com/jibchain-net/node
@@ -60,12 +63,10 @@ def exit_validators(validators, num_to_exit):
 
             print(f"Exiting validator: {public_key}")
             try:
-                subprocess.run([
-                    "sudo", "lighthouse", "account", "validator", "exit",
-                    "--keystore", keystore_path,
-                    "--beacon-node", "https://metrabyte-cl.jibchain.net/",
-                    f"--testnet-dir={TESTNET_DIR}"
-                ], check=True)
+                subprocess.run([LIGHTHOUSE_PATH, "account", "validator", "exit",
+                                "--keystore", keystore_path,
+                                "--beacon-node", "https://metrabyte-cl.jibchain.net/",
+                                f"--testnet-dir={TESTNET_DIR}"], check=True)
                 url = f"https://dora.jibchain.net/validator/{public_key}"
                 exited_validators.append((public_key, url))
                 print(f"Success: {public_key}")
@@ -105,7 +106,7 @@ def main():
         print("Invalid input. Please enter a valid number or 'all'.")
         return
 
-    if not confirm_action(f"Are you sure you want to exit {num_to_exit} validators? This action cannot be undone."):
+    if not confirm_action(f"Are you sure you want to exit {num_to_exit} validators? This action cannot be undone.") :
         print("Operation canceled.")
         return
 
