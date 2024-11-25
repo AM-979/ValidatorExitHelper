@@ -81,4 +81,4 @@ If you find this program helpful and would like to support it, donations are app
 ---
 
 **Developer**  
-AM979 | [xpool](https://xpool.pw)
+AM979 | [xpool.pw](https://xpool.pw)
