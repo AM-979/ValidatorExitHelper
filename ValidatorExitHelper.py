@@ -18,8 +18,8 @@ import yaml
 import subprocess
 
 # กำหนดชื่อไฟล์ YAML และตำแหน่ง testnet_dir
-FILE_PATH = "validator_definitions.yml"
-TESTNET_DIR = "/path/to/your/testnet/config"  # แทนที่ด้วยพาธที่ต้องการ
+FILE_PATH = "/home/USER/.lighthouse/custom/validators/validator_definitions.yml"
+TESTNET_DIR = "/home/USER/node/config/"  # แทนที่ด้วยพาธที่ต้องการ https://github.com/jibchain-net/node
 
 # ฟังก์ชันตรวจสอบว่าไฟล์ YAML มีอยู่หรือไม่
 def check_file_exists(file_path):
