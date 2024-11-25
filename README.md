@@ -52,8 +52,9 @@ Before using **ValidatorExitHelper**, you will need to configure the following s
    ```
 
    Replace `"validator_definitions.yml"` with the actual path to your YAML configuration file.
+   EX.PATH : /home/USER/.lighthouse/custom/validators/
 
-2. **Set the Testnet Directory**
+3. **Set the Testnet Directory**
    - The script also requires a `testnet_dir` for the configuration files.
    
    Modify the line in `ValidatorExitHelper.py`:
@@ -62,6 +63,7 @@ Before using **ValidatorExitHelper**, you will need to configure the following s
    ```
 
    Replace `"/path/to/your/testnet/config"` with the actual path to your testnet configuration directory.
+   Download from here : https://github.com/jibchain-net/node
 
 Once you have updated these settings, you can proceed to use the script.
 
