@@ -1,7 +1,7 @@
 
 # ValidatorExitHelper
 
-ValidatorExitHelper is a program that facilitates the **exit** of Jibchain Validators from the blockchain network. It supports selecting the number of Validators to exit or choosing all, ensuring a safe exit process with confirmation before execution of irreversible commands. The program also logs important information such as Public Key and URL for future verification.
+ValidatorExitHelper is a program that facilitates the **exit** of Ethereum Validators from the blockchain network. It supports selecting the number of Validators to exit or choosing all, ensuring a safe exit process with confirmation before execution of irreversible commands. The program also logs important information such as Public Key and URL for future verification.
 
 ---
 
@@ -33,6 +33,35 @@ pip install pyyaml
 
 ### 2. Download the Program Files
 Download the program files and place them in your desired folder, such as `/home/user/ValidatorExitHelper`.
+
+---
+
+## Configuration
+
+Before using **ValidatorExitHelper**, you will need to configure the following settings in the `ValidatorExitHelper.py` script:
+
+1. **File Path for YAML Configuration**
+   - The script expects a YAML configuration file containing the list of validators you want to exit. 
+   - You need to define the correct path to this YAML file.
+   
+   To configure it, modify the line in `ValidatorExitHelper.py`:
+   ```python
+   file_path = "validator_definitions.yml"
+   ```
+
+   Replace `"validator_definitions.yml"` with the actual path to your YAML configuration file.
+
+2. **Set the Testnet Directory**
+   - The script also requires a `testnet_dir` for the configuration files.
+   
+   Modify the line in `ValidatorExitHelper.py`:
+   ```python
+   TESTNET_DIR = "/path/to/your/testnet/config"
+   ```
+
+   Replace `"/path/to/your/testnet/config"` with the actual path to your testnet configuration directory.
+
+Once you have updated these settings, you can proceed to use the script.
 
 ---
 
