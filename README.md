@@ -32,8 +32,10 @@ pip install pyyaml
 ```
 
 ### 2. Download the Program Files
-Download the program files and place them in your desired folder, such as `/home/user/ValidatorExitHelper`.
-
+To download the program files, run the following command to clone the repository:
+```bash
+git clone https://github.com/AM-979/ValidatorExitHelper.git
+```
 ---
 
 ## Configuration
