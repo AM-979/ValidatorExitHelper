@@ -1,7 +1,7 @@
 
 # ValidatorExitHelper
 
-ValidatorExitHelper is a program that facilitates the **exit** of Ethereum Validators from the blockchain network. It supports selecting the number of Validators to exit or choosing all, ensuring a safe exit process with confirmation before execution of irreversible commands. The program also logs important information such as Public Key and URL for future verification.
+ValidatorExitHelper is a program that facilitates the **exit** of Jibchain Validators from the blockchain network. It supports selecting the number of Validators to exit or choosing all, ensuring a safe exit process with confirmation before execution of irreversible commands. The program also logs important information such as Public Key and URL for future verification.
 
 ---
 
