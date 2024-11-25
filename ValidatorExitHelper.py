@@ -1,28 +1,16 @@
 #!/usr/bin/env python3
-"""
-ValidatorExitHelper
-
-This tool is designed to help safely exit validators on the Ethereum network (or its forks).
-Author: AM979 
-Website: https://xpool.pw
-Discord : https://discord.gg/7QdkBhqxhz
-
-Donate to support further development:
-BTC (Native SegWit): bc1qlpy59lmup27ylrffe7kg2sp9wj0zfka8q8j9dz
-ERC20/BEP20/POL/JIBChain: 0xba2eab518482c75789a262ce3e4ded6941c36370
-"""
-
 import os
 import time
 import yaml
 import subprocess
-
-# กำหนด path ของ Lighthouse
-LIGHTHOUSE_PATH = "/path/to/lighthouse"  # แทนที่ด้วยพาธที่ถูกต้องของ Lighthouse
+from getpass import getpass
 
 # กำหนดชื่อไฟล์ YAML และตำแหน่ง testnet_dir
 FILE_PATH = "/home/USER/.lighthouse/custom/validators/validator_definitions.yml"
 TESTNET_DIR = "/home/USER/node/config/"  # แทนที่ด้วยพาธที่ต้องการ https://github.com/jibchain-net/node
+
+# กำหนด path ของ Lighthouse
+LIGHTHOUSE_PATH = "/usr/local/bin/lighthouse"  # หรือกำหนด path ที่ต้องการ
 
 # ฟังก์ชันตรวจสอบว่าไฟล์ YAML มีอยู่หรือไม่
 def check_file_exists(file_path):
@@ -49,6 +37,12 @@ def log_exited_validators(exited_validators):
             file.write(f"URL: {url}\n")
             file.write("\n")
 
+# ฟังก์ชันจัดการการร้องขอรหัสผ่านสำหรับ sudo
+def request_sudo_password():
+    # ให้ผู้ใช้กรอกรหัสผ่าน sudo
+    password = getpass(prompt="Enter your sudo password: ")
+    return password
+
 # ฟังก์ชัน exit validator
 def exit_validators(validators, num_to_exit):
     exited_validators = []
@@ -62,11 +56,21 @@ def exit_validators(validators, num_to_exit):
                 continue
 
             print(f"Exiting validator: {public_key}")
+            
+            # ขอรหัสผ่านจากผู้ใช้
+            sudo_password = request_sudo_password()
+
+            # สร้างคำสั่ง sudo
+            command = [
+                "echo", sudo_password, "|", "sudo", "-S", LIGHTHOUSE_PATH, "account", "validator", "exit",
+                "--keystore", keystore_path,
+                "--beacon-node", "https://metrabyte-cl.jibchain.net/",
+                f"--testnet-dir={TESTNET_DIR}"
+            ]
+            
             try:
-                subprocess.run([LIGHTHOUSE_PATH, "account", "validator", "exit",
-                                "--keystore", keystore_path,
-                                "--beacon-node", "https://metrabyte-cl.jibchain.net/",
-                                f"--testnet-dir={TESTNET_DIR}"], check=True)
+                # รันคำสั่ง
+                subprocess.run(command, check=True, shell=True)
                 url = f"https://dora.jibchain.net/validator/{public_key}"
                 exited_validators.append((public_key, url))
                 print(f"Success: {public_key}")
@@ -106,7 +110,7 @@ def main():
         print("Invalid input. Please enter a valid number or 'all'.")
         return
 
-    if not confirm_action(f"Are you sure you want to exit {num_to_exit} validators? This action cannot be undone.") :
+    if not confirm_action(f"Are you sure you want to exit {num_to_exit} validators? This action cannot be undone."):
         print("Operation canceled.")
         return
 
