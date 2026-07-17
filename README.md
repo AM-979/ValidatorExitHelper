@@ -1,117 +1,188 @@
-
 # ValidatorExitHelper
 
-ValidatorExitHelper is a program that facilitates the **exit** of Ethereum Validators from the blockchain network. It supports selecting the number of Validators to exit or choosing all, ensuring a safe exit process with confirmation before execution of irreversible commands. The program also logs important information such as Public Key and URL for future verification.
+ValidatorExitHelper submits voluntary exits for multiple Lighthouse validators while adding preflight validation, an explicit irreversible-operation confirmation, shell-free process execution, and an append-only audit log.
 
----
+The default endpoint and explorer target **Jibchain**, but the Lighthouse executable, validator definitions, custom-network directory, beacon node, explorer, and log path are configurable.
 
-## Purpose
-1. Facilitate the safe exit of multiple Validators at once.
-2. Reduce human error by confirming actions before executing irreversible commands.
-3. Log essential information like Public Key and URL for verifying Validator status after exiting.
+> [!CAUTION]
+> A validator voluntary exit is irreversible. Test the exact configuration with `--dry-run` first, verify every public key shown before confirmation, and keep each validator online until its exit epoch.
 
----
+## Safety properties
 
-## Features
-- Only supports exiting Validators with `enabled: true` status.
-- Allows selecting a specific number of Validators to exit, or exit all Validators.
-- Verifies the success of the `lighthouse account validator exit` command and retries if the command fails.
-- Logs Public Key and URL to `exited_validators_log.txt`.
-- Displays important warnings during the process.
+- Processes only entries with `enabled: true` and `type: local_keystore`.
+- Validates YAML structure, public keys, duplicate keys, keystore files, password files, Lighthouse, and the custom-network directory before submitting an exit.
+- Rejects an exit count of `0`, negative/invalid input, and counts larger than the available validator set.
+- Shows every selected public key, keystore path, and explorer URL before execution.
+- Requires the exact phrase `EXIT N VALIDATOR(S)` before the irreversible operation.
+- Calls Lighthouse with an argument list and `shell=False`; it never constructs a shell pipeline or places passwords in command arguments.
+- Uses Lighthouse without `--no-wait`, so an exit is recorded as `confirmed` only after Lighthouse observes an exiting/exited validator state.
+- Appends mode-`0600` JSON Lines records instead of overwriting previous history.
+- Supports a non-destructive `--dry-run` mode.
 
----
+The script intentionally does **not** retry failed exits automatically. Before retrying, check the validator explorer and audit log to avoid submitting an operation whose prior state is uncertain.
+
+## Requirements
+
+- Linux or another operating system supported by Lighthouse
+- Python 3.8 or later
+- Lighthouse installed and executable
+- A synchronized beacon-node HTTP API for the same network as the supplied custom-network configuration
+- Local EIP-2335 voting keystores referenced by `validator_definitions.yml`
 
 ## Installation
 
-### 1. Install Dependencies
-This program requires Python 3.7 or later and the `PyYAML` library:
 ```bash
-sudo apt update
-sudo apt install python3 python3-pip -y
-pip install pyyaml
+git clone https://github.com/AM-979/ValidatorExitHelper.git
+cd ValidatorExitHelper
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-### 2. Download the Program Files
-To download the program files, run the following command to clone the repository:
-```bash
-git clone https://github.com/AM-979/ValidatorExitHelper.git && cd ValidatorExitHelper
-```
----
+## Lighthouse validator definitions
 
-## Configuration
+The script reads Lighthouse's existing `validator_definitions.yml`. A current local-keystore entry normally resembles:
 
-Before using **ValidatorExitHelper**, you will need to configure the following settings in the `ValidatorExitHelper.py` script:
-
-1. **File Path for YAML Configuration**
-   - The script expects a YAML configuration file containing the list of validators you want to exit. 
-   - You need to define the correct path to this YAML file.
-   
-   To configure it, modify the line in `ValidatorExitHelper.py`:
-   ```python
-   file_path = "validator_definitions.yml"
-   ```
-
-   Replace `"validator_definitions.yml"` with the actual path to your YAML configuration file.
-   EX.PATH : /home/USER/.lighthouse/custom/validators/
-
-3. **Set the Testnet Directory**
-   - The script also requires a `testnet_dir` for the configuration files.
-   
-   Modify the line in `ValidatorExitHelper.py`:
-   ```python
-   TESTNET_DIR = "/path/to/your/testnet/config"
-   ```
-
-   Replace `"/path/to/your/testnet/config"` with the actual path to your testnet configuration directory.
-   Download from here : https://github.com/jibchain-net/node
-
-Once you have updated these settings, you can proceed to use the script.
-
----
-
-## Usage
-
-### 1. Prepare `validator_definitions.yml` File
-The `validator_definitions.yml` file must be in the same directory as the program and have the following structure:
 ```yaml
+---
 - enabled: true
-  voting_public_key: 0x...
-  voting_keystore_path: /path/to/keystore.json
-  voting_keystore_password: 'password'
+  voting_public_key: "0x87a580d31d7bc69069b55f5a01995a610dd391a26dc9e36e81057a17211983a79266800ab8531f21f1083d7d84085007"
+  type: local_keystore
+  voting_keystore_path: /home/user/.lighthouse/custom/validators/0x87a5.../voting-keystore.json
+  voting_keystore_password_path: /home/user/.lighthouse/custom/secrets/0x87a5...
 ```
 
-### 2. Run the Program
-To start the program, run the following command:
+`voting_keystore_password_path` is preferred. If only `voting_keystore_password` is present, ValidatorExitHelper copies it to a temporary mode-`0600` file, passes that file to Lighthouse, and deletes it immediately afterward. If neither password field is present, Lighthouse inherits the terminal and prompts for the keystore password.
+
+Enabled `web3signer` entries are skipped because this command requires access to the local voting keystore.
+
+## Default configuration
+
+| Setting | Default |
+|---|---|
+| Validator definitions | `~/.lighthouse/custom/validators/validator_definitions.yml` |
+| Jibchain custom-network directory | `~/node/config` |
+| Lighthouse executable | `lighthouse` from `PATH` |
+| Beacon node | `https://metrabyte-cl.jibchain.net/` |
+| Explorer | `https://dora.jibchain.net/validator/` |
+| Audit log | `./exited_validators_log.jsonl` |
+
+Every setting can be supplied as a command-line option or environment variable.
+
+## Recommended workflow
+
+### 1. Validate without exiting
+
 ```bash
-python3 ValidatorExitHelper.py
+python3 ValidatorExitHelper.py --count all --dry-run
 ```
 
-### 3. Choose Number of Validators
-- Enter the number of Validators to exit.
-- Confirm the action by typing **yes** or **no**.
+Review:
 
-### 4. Check the Log File
-After completion, the Public Key and URL of the exited Validators will be logged in `exited_validators_log.txt`:
-```plaintext
-Public Key: 0x123...
-URL: https://dora.jibchain.net/validator/0x123...
+- the number of validated validators;
+- every selected public key;
+- every keystore path;
+- the Lighthouse commands displayed by the dry run;
+- warnings about skipped validators or inline passwords.
+
+### 2. Exit a specific number
+
+```bash
+python3 ValidatorExitHelper.py --count 2
 ```
 
----
+The script displays the exact validator list and requires:
 
-## Caution
-1. The `lighthouse account validator exit` command **cannot be undone**.
-2. Keep your Lighthouse Validator running until all coins have been returned to your Wallet.
+```text
+EXIT 2 VALIDATORS
+```
 
----
+For one validator, the required phrase is `EXIT 1 VALIDATOR`.
 
-## Donate 💖
-If you find this program helpful and would like to support it, donations are appreciated via:
+### 3. Exit all validated local validators
 
-- **BTC Native SegWit**: `bc1qlpy59lmup27ylrffe7kg2sp9wj0zfka8q8j9dz`
-- **ERC20/BEP20/JIBChain**: `0xba2eab518482c75789a262ce3e4ded6941c36370`
+```bash
+python3 ValidatorExitHelper.py --count all
+```
 
----
+When `--count` is omitted, the script prompts for a positive integer or `all`.
 
-**Developer**  
-AM979 | [xpool.pw](https://xpool.pw)
+## Custom paths and endpoint
+
+```bash
+python3 ValidatorExitHelper.py \
+  --validator-definitions /home/jbc/.lighthouse/custom/validators/validator_definitions.yml \
+  --testnet-dir /home/jbc/node/config \
+  --lighthouse /usr/local/bin/lighthouse \
+  --beacon-node https://metrabyte-cl.jibchain.net/ \
+  --count 2
+```
+
+Equivalent environment variables are:
+
+```bash
+export VALIDATOR_DEFINITIONS_PATH=/home/jbc/.lighthouse/custom/validators/validator_definitions.yml
+export TESTNET_DIR=/home/jbc/node/config
+export LIGHTHOUSE_PATH=/usr/local/bin/lighthouse
+export BEACON_NODE=https://metrabyte-cl.jibchain.net/
+export EXPLORER_BASE=https://dora.jibchain.net/validator/
+export EXIT_LOG_FILE=/secure/path/exited_validators_log.jsonl
+```
+
+## Options
+
+```text
+--validator-definitions PATH  Lighthouse validator_definitions.yml
+--testnet-dir PATH            Custom-network configuration directory
+--lighthouse PATH             Lighthouse executable name or path
+--beacon-node URL              Beacon Node HTTP API
+--explorer-base URL            Validator explorer base URL
+--log-file PATH                Append-only JSON Lines audit log
+--count N|all                  Number of validators to exit
+--dry-run                      Validate and display commands only
+--stop-on-error                Stop after the first Lighthouse failure
+--delay SECONDS                Delay between exits; default 1 second
+```
+
+## Audit log
+
+Each processed validator produces one JSON object per line:
+
+```json
+{"beacon_node":"https://metrabyte-cl.jibchain.net/","explorer_url":"https://dora.jibchain.net/validator/0x...","keystore_path":"/home/user/.../voting-keystore.json","message":"Lighthouse confirmed the voluntary exit state.","public_key":"0x...","status":"confirmed","timestamp_utc":"2026-07-17T05:00:00+00:00"}
+```
+
+Possible statuses:
+
+- `confirmed`: Lighthouse returned success after observing an exiting/exited state.
+- `failed`: Lighthouse or process execution failed.
+- `dry-run`: no voluntary exit was submitted.
+- `interrupted`: the user interrupted processing of that validator.
+
+The log is append-only and forced to mode `0600`. It contains keystore paths and validator public keys, so keep it private.
+
+## Withdrawal timing
+
+Do not assume funds will arrive within a fixed one- or two-day window. Timing depends on the network's exit queue, withdrawability delay, withdrawal credentials, and withdrawal sweep. The validator must remain online and continue performing duties until its exit epoch to avoid penalties.
+
+An exit does not by itself repair withdrawal credentials. Verify that the configured withdrawal address and credential type are correct before exiting.
+
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+python -m compileall -q ValidatorExitHelper.py tests
+```
+
+GitHub Actions runs the same checks on supported Python versions.
+
+## Donations
+
+- **BTC Native SegWit:** `bc1qlpy59lmup27ylrffe7kg2sp9wj0zfka8q8j9dz`
+- **ERC20 / BEP20 / POL / Jibchain:** `0xba2eab518482c75789a262ce3e4ded6941c36370`
+
+## Developer
+
+AM979 — [xpool.pw](https://xpool.pw)
