@@ -26,6 +26,7 @@ The script intentionally does **not** retry failed exits automatically. Before r
 - Linux or another operating system supported by Lighthouse
 - Python 3.8 or later
 - Lighthouse installed and executable
+- The official Jibchain custom-network configuration from [`jibchain-net/node`](https://github.com/jibchain-net/node)
 - A synchronized beacon-node HTTP API for the same network as the supplied custom-network configuration
 - Local EIP-2335 voting keystores referenced by `validator_definitions.yml`
 
@@ -40,6 +41,57 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
+
+## Required Jibchain network configuration
+
+ValidatorExitHelper does **not** include the Jibchain Lighthouse network configuration. The authoritative configuration is maintained in:
+
+```text
+https://github.com/jibchain-net/node
+```
+
+For the default `--testnet-dir ~/node/config` setting, clone that repository into your home directory:
+
+```bash
+cd ~
+git clone https://github.com/jibchain-net/node.git node
+```
+
+Verify that the Jibchain Lighthouse configuration exists:
+
+```bash
+test -f ~/node/config/config.yaml \
+  && echo "Jibchain config found" \
+  || echo "ERROR: ~/node/config/config.yaml is missing"
+```
+
+The value passed to `--testnet-dir` must point to the repository's **`config` subdirectory**, not to the repository root:
+
+```text
+Correct:   /home/jbc/node/config
+Incorrect: /home/jbc/node
+```
+
+If the repository is installed elsewhere, pass its absolute `config` path:
+
+```bash
+python3 ValidatorExitHelper.py \
+  --testnet-dir /absolute/path/to/node/config \
+  --count all \
+  --dry-run
+```
+
+Keep the local configuration repository current before planned maintenance:
+
+```bash
+cd ~/node
+git pull --ff-only
+```
+
+> [!IMPORTANT]
+> The custom-network configuration and beacon-node endpoint must refer to the same Jibchain network. Do not substitute an Ethereum mainnet or unrelated testnet configuration. Lighthouse checks the network genesis data and will reject a mismatch.
+
+The official Jibchain node repository also mounts its local `./config` directory as `/config` and starts Lighthouse with `--testnet-dir=/config`. ValidatorExitHelper follows the same directory convention on the host by defaulting to `~/node/config`.
 
 ## Lighthouse validator definitions
 
@@ -63,7 +115,7 @@ Enabled `web3signer` entries are skipped because this command requires access to
 | Setting | Default |
 |---|---|
 | Validator definitions | `~/.lighthouse/custom/validators/validator_definitions.yml` |
-| Jibchain custom-network directory | `~/node/config` |
+| Jibchain custom-network directory | `~/node/config` — from `https://github.com/jibchain-net/node` |
 | Lighthouse executable | `lighthouse` from `PATH` |
 | Beacon node | `https://metrabyte-cl.jibchain.net/` |
 | Explorer | `https://dora.jibchain.net/validator/` |
@@ -135,7 +187,7 @@ export EXIT_LOG_FILE=/secure/path/exited_validators_log.jsonl
 
 ```text
 --validator-definitions PATH  Lighthouse validator_definitions.yml
---testnet-dir PATH            Custom-network configuration directory
+--testnet-dir PATH            Jibchain config directory, normally node/config
 --lighthouse PATH             Lighthouse executable name or path
 --beacon-node URL              Beacon Node HTTP API
 --explorer-base URL            Validator explorer base URL
